@@ -200,6 +200,9 @@ export default function SupportInterface() {
         setInput('');
         setIsLoading(true);
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout for LLM response
+
         try {
             // Attempt to call the live backend API
             const response = await fetch('http://localhost:8000/ai/chat', {
@@ -211,7 +214,9 @@ export default function SupportInterface() {
                     message: userInput,
                     conversation_history: messages.map(m => ({ role: m.role, content: m.content }))
                 }),
+                signal: controller.signal
             });
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 throw new Error('API request failed');
@@ -228,7 +233,7 @@ export default function SupportInterface() {
             setMessages(prev => [...prev, assistantMessage]);
 
         } catch (error) {
-            console.log("Backend API unavailable, falling back to mock:", error);
+            console.log("Backend API unavailable or timed out, falling back to mock:", error);
 
             // Fallback to local mock logic
             // Simulate AI thinking time

@@ -44,15 +44,15 @@ You are here to empower financial professionals with instant, high-quality intel
 
 async def get_ai_response(message: str, history: List[Dict] = None) -> str:
     """
-    Get AI response using Perplexity, OpenAI GPT-4 or Anthropic Claude.
-    Prioritizes Perplexity for live/general queries if available.
+    Get AI response using OpenAI, Anthropic Claude, or Perplexity.
+    Priority: OpenAI > Claude > Perplexity
     """
     if history is None:
         history = []
     
-    try:
-        # 1. Try Perplexity first (Best for real-time/general finance)
-        if os.getenv("PERPLEXITY_API_KEY") and os.getenv("PERPLEXITY_API_KEY") != "your_perplexity_api_key_here":
+    # 1. Try OpenAI first (Primary)
+    if os.getenv("OPENAI_API_KEY") and os.getenv("OPENAI_API_KEY") != "your_openai_api_key_here":
+        try:
             messages = [{"role": "system", "content": SYSTEM_PROMPT}]
             
             for msg in history:
@@ -61,46 +61,22 @@ async def get_ai_response(message: str, history: List[Dict] = None) -> str:
                     "content": msg.get("content", "")
                 })
             
-            messages.append({"role": "user", "content": message})
-            
-            try:
-                response = await perplexity_client.chat.completions.create(
-                    model="sonar-pro",
-                    messages=messages,
-                    max_tokens=1000,
-                    temperature=0.7
-                )
-                return response.choices[0].message.content
-            except Exception as e:
-                print(f"Perplexity API failed, falling back: {e}")
-                # Fallthrough to next provider
-
-        # 2. Try OpenAI
-        if os.getenv("OPENAI_API_KEY") and os.getenv("OPENAI_API_KEY") != "your_openai_api_key_here":
-            messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-            
-            # Add conversation history
-            for msg in history:
-                messages.append({
-                    "role": msg.get("role", "user"),
-                    "content": msg.get("content", "")
-                })
-            
-            # Add current message
             messages.append({"role": "user", "content": message})
             
             response = await openai_client.chat.completions.create(
                 model="gpt-4-turbo-preview",
                 messages=messages,
-                max_tokens=500,
+                max_tokens=1000,
                 temperature=0.7
             )
             
             return response.choices[0].message.content
-        
-        # 3. Fall back to Anthropic
-        elif os.getenv("ANTHROPIC_API_KEY") and os.getenv("ANTHROPIC_API_KEY") != "your_anthropic_api_key_here":
-            # Format conversation for Claude
+        except Exception as e:
+            print(f"OpenAI API failed, falling back: {e}")
+    
+    # 2. Try Anthropic Claude (Secondary)
+    if os.getenv("ANTHROPIC_API_KEY") and os.getenv("ANTHROPIC_API_KEY") != "your_anthropic_api_key_here":
+        try:
             conversation = []
             for msg in history:
                 conversation.append({
@@ -112,18 +88,65 @@ async def get_ai_response(message: str, history: List[Dict] = None) -> str:
             
             response = anthropic_client.messages.create(
                 model="claude-3-5-sonnet-20241022",
-                max_tokens=500,
+                max_tokens=1000,
                 system=SYSTEM_PROMPT,
                 messages=conversation
             )
             
             return response.content[0].text
-        
-        else:
-            # No valid API keys - return fallback
-            return "I'm currently in demo mode. To enable AI-powered responses, please add your PERPLEXITY_API_KEY, OPENAI_API_KEY or ANTHROPIC_API_KEY to the .env file."
+        except Exception as e:
+            print(f"Anthropic API failed, falling back: {e}")
+    
+    # 3. Try Perplexity (Tertiary - for real-time/search queries)
+    if os.getenv("PERPLEXITY_API_KEY") and os.getenv("PERPLEXITY_API_KEY") != "your_perplexity_api_key_here":
+        try:
+            messages = [{"role": "system", "content": SYSTEM_PROMPT}]
             
-    except Exception as e:
-        # If all AI services fail, return helpful error
-        print(f"AI Service Error: {e}")
-        return f"I apologize, but I'm having trouble processing your request right now. Please check your API configuration. Error: {str(e)}"
+            for msg in history:
+                messages.append({
+                    "role": msg.get("role", "user"),
+                    "content": msg.get("content", "")
+                })
+            
+            messages.append({"role": "user", "content": message})
+            
+            response = await perplexity_client.chat.completions.create(
+                model="sonar-pro",
+                messages=messages,
+                max_tokens=1000,
+                temperature=0.7
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            print(f"Perplexity API failed: {e}")
+    
+    # No valid API keys or all failed
+    return "I'm currently in demo mode. To enable AI-powered responses, please add your OPENAI_API_KEY, ANTHROPIC_API_KEY, or PERPLEXITY_API_KEY to the .env file."
+
+
+def get_ai_status() -> dict:
+    """Check which AI providers are configured and available"""
+    openai_key = os.getenv("OPENAI_API_KEY", "")
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
+    perplexity_key = os.getenv("PERPLEXITY_API_KEY", "")
+    
+    return {
+        "openai": {
+            "configured": bool(openai_key and openai_key != "your_openai_api_key_here"),
+            "key_preview": f"{openai_key[:8]}..." if openai_key and len(openai_key) > 8 else "not set"
+        },
+        "anthropic": {
+            "configured": bool(anthropic_key and anthropic_key != "your_anthropic_api_key_here"),
+            "key_preview": f"{anthropic_key[:8]}..." if anthropic_key and len(anthropic_key) > 8 else "not set"
+        },
+        "perplexity": {
+            "configured": bool(perplexity_key and perplexity_key != "your_perplexity_api_key_here"),
+            "key_preview": f"{perplexity_key[:8]}..." if perplexity_key and len(perplexity_key) > 8 else "not set"
+        },
+        "active_provider": (
+            "OpenAI" if (openai_key and openai_key != "your_openai_api_key_here") else
+            "Anthropic" if (anthropic_key and anthropic_key != "your_anthropic_api_key_here") else
+            "Perplexity" if (perplexity_key and perplexity_key != "your_perplexity_api_key_here") else
+            "None (Demo Mode)"
+        )
+    }

@@ -175,6 +175,18 @@ def read_root():
 def health_check():
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
+@app.get("/health/ai")
+def ai_health_check():
+    """Check AI service status and configured providers"""
+    from ai_service import get_ai_status
+    status = get_ai_status()
+    return {
+        "status": "configured" if status["active_provider"] != "None (Demo Mode)" else "demo_mode",
+        **status,
+        "timestamp": datetime.now().isoformat()
+    }
+
+
 @app.post("/predict/engagement")
 def predict_engagement(request: PredictionRequest):
     return get_prediction(request)
