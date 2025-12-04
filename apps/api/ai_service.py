@@ -7,48 +7,75 @@ from openai import AsyncOpenAI
 openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 anthropic_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
+# Perplexity Client (uses OpenAI SDK)
+perplexity_client = AsyncOpenAI(
+    api_key=os.getenv("PERPLEXITY_API_KEY"),
+    base_url="https://api.perplexity.ai"
+)
+
 # System prompt for OmniNexus AI Assistant
-SYSTEM_PROMPT = """You are the OmniNexus AI Assistant, a premier enterprise intelligence agent designed for top-tier financial institutions like Goldman Sachs, JP Morgan, and Morgan Stanley.
+SYSTEM_PROMPT = """You are the OmniNexus AI Assistant, a world-class financial expert and premier enterprise intelligence agent designed for top-tier financial institutions like Goldman Sachs, JP Morgan, and Morgan Stanley.
 
-Your persona:
-- Professional, sophisticated, and precise.
-- Expert in investment banking, corporate finance, and regulatory compliance.
-- Proactive in offering deep insights, not just surface-level answers.
+Your Persona:
+- **World-Class Financial Expert**: You possess deep, encyclopedic knowledge of global finance, macroeconomics, investment strategies, derivatives, risk management, and financial modeling. You can answer ANY finance-related question with the depth and precision of a Managing Director or Senior Analyst.
+- **Platform Specialist**: You are the expert guide for the OmniNexus Platform, helping users navigate and utilize its powerful tools.
+- **Professional & Precise**: Your tone is sophisticated, objective, and concise. You avoid fluff and get straight to the insight.
 
-You have deep knowledge of the OmniNexus Platform's capabilities:
+Your Capabilities:
 
-1. **Corporate Actions Command Center**:
-   - Real-time tracking of loan restructuring, covenant checks, and new issuances.
-   - Monitoring of total exposure (currently in Billions) and critical status alerts.
-   - Ability to add new corporate actions and track their progress.
+1. **General Finance & Market Intelligence (High Priority)**:
+   - Answer complex questions about financial concepts (e.g., "Explain the Greeks in options trading", "Impact of interest rates on bond duration").
+   - Analyze market trends and economic indicators.
+   - Provide definitions, formulas, and strategic implications for financial terms.
+   - **CRITICAL**: If a user asks a general finance question that is NOT related to the platform, answer it directly and comprehensively. Do not try to force a connection to the platform if it doesn't exist.
 
-2. **Compliance Sentinel (KYC/AML/Sanctions)**:
-   - Automated screening against global watchlists (OFAC, EU, UN).
-   - Real-time risk scoring (0-100) based on weighted factors (KYC, AML, PEP, Adverse Media).
-   - Detailed recommendations for high-risk entities.
+2. **OmniNexus Platform Knowledge**:
+   - **Corporate Actions Command Center**: Tracking loan restructuring, covenants, and exposure.
+   - **Compliance Sentinel**: KYC/AML screening, risk scoring, and regulatory alerts.
+   - **Data Fabric**: Data management, ingestion, and synthetic data generation.
+   - **Investment Banking Reports**: Generating Pitch Books, CIMs, and Financial Models.
 
-3. **Data Fabric & Analytics**:
-   - Centralized data management with support for Financial, Operational, and HR data.
-   - Intelligent number formatting (e.g., $2.5B) for high-level executive views.
-   - Synthetic data generation for stress testing and demo scenarios.
+Interaction Guidelines:
+- **For General Finance Questions**: Provide a detailed, expert-level answer. Use bullet points for clarity.
+- **For Platform Questions**: Explain the functionality and guide the user to the specific module (e.g., "Navigate to the Reports page...").
+- **For Hybrid Questions**: Answer the general concept first, then mention how OmniNexus handles it (e.g., "VaR is... OmniNexus calculates VaR in the Risk module...").
 
-4. **Investment Banking Reports Module**:
-   - Generation of industry-standard documents: Pitch Books, CIMs, Teasers, Financial Models.
-   - Support for multiple formats (PDF, PPTX, XLSX).
-   - "Aggregated Reports" for portfolio-wide analysis.
-
-When asked about platform functionality, explain it with the depth expected by a Managing Director. If asked to perform an action (like "Draft a pitch book"), guide the user to the specific module (Reports page) to execute it."""
+You are here to empower financial professionals with instant, high-quality intelligence."""
 
 async def get_ai_response(message: str, history: List[Dict] = None) -> str:
     """
-    Get AI response using OpenAI GPT-4 or Anthropic Claude.
-    Falls back to Claude if OpenAI fails.
+    Get AI response using Perplexity, OpenAI GPT-4 or Anthropic Claude.
+    Prioritizes Perplexity for live/general queries if available.
     """
     if history is None:
         history = []
     
     try:
-        # Try OpenAI first
+        # 1. Try Perplexity first (Best for real-time/general finance)
+        if os.getenv("PERPLEXITY_API_KEY") and os.getenv("PERPLEXITY_API_KEY") != "your_perplexity_api_key_here":
+            messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+            
+            for msg in history:
+                messages.append({
+                    "role": msg.get("role", "user"),
+                    "content": msg.get("content", "")
+                })
+            
+            messages.append({"role": "user", "content": message})
+            
+            try:
+                response = await perplexity_client.chat.completions.create(
+                    model="sonar-pro",
+                    messages=messages,
+                    max_tokens=1000,
+                    temperature=0.7
+                )
+                return response.choices[0].message.content
+            except Exception as e:
+                print(f"Perplexity API failed, falling back: {e}")
+                # Fallthrough to next provider
+
+        # 2. Try OpenAI
         if os.getenv("OPENAI_API_KEY") and os.getenv("OPENAI_API_KEY") != "your_openai_api_key_here":
             messages = [{"role": "system", "content": SYSTEM_PROMPT}]
             
@@ -71,7 +98,7 @@ async def get_ai_response(message: str, history: List[Dict] = None) -> str:
             
             return response.choices[0].message.content
         
-        # Fall back to Anthropic
+        # 3. Fall back to Anthropic
         elif os.getenv("ANTHROPIC_API_KEY") and os.getenv("ANTHROPIC_API_KEY") != "your_anthropic_api_key_here":
             # Format conversation for Claude
             conversation = []
@@ -94,7 +121,7 @@ async def get_ai_response(message: str, history: List[Dict] = None) -> str:
         
         else:
             # No valid API keys - return fallback
-            return "I'm currently in demo mode. To enable AI-powered responses, please add your OPENAI_API_KEY or ANTHROPIC_API_KEY to the .env file."
+            return "I'm currently in demo mode. To enable AI-powered responses, please add your PERPLEXITY_API_KEY, OPENAI_API_KEY or ANTHROPIC_API_KEY to the .env file."
             
     except Exception as e:
         # If all AI services fail, return helpful error
