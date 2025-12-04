@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-900 text-white antialiased;
+  }
+}
+
+/* AG Grid Dark Theme Overrides */
+.ag-theme-alpine-dark {
+  --ag-background-color: #1e293b;
+  /* slate-850 */
+  --ag-foreground-color: #f1f5f9;
+  /* slate-100 */
+  --ag-border-color: #334155;
+  /* slate-700 */
+  --ag-header-background-color: #0f172a;
+  /* slate-900 */
+  --ag-row-hover-color: #334155;
+  --ag-odd-row-background-color: #1e293b;
+  --ag-control-panel-background-color: #0f172a;
+  --ag-subheader-background-color: #0f172a;
+}
+
+.ag-theme-alpine-dark .ag-header-cell {
+  @apply font-semibold text-slate-300;
+}
+
+.ag-theme-alpine-dark .ag-root-wrapper {
+  @apply rounded-none border-none;
+}
