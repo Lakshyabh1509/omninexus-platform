@@ -2,7 +2,7 @@
 
 This guide covers deploying OmniNexus with:
 - **Frontend** → Vercel (already done ✓)
-- **Backend** → Railway (5-minute setup)
+- **Backend** → Render (Free Tier)
 
 ---
 
@@ -10,7 +10,7 @@ This guide covers deploying OmniNexus with:
 
 ```
 ┌─────────────────┐         ┌─────────────────┐
-│   VERCEL        │         │    RAILWAY      │
+│   VERCEL        │         │    RENDER       │
 │   (Frontend)    │  ───►   │    (Backend)    │
 │                 │  API    │                 │
 │  React + Vite   │ calls   │  FastAPI +      │
@@ -20,40 +20,48 @@ This guide covers deploying OmniNexus with:
 
 ---
 
-## Step 1: Deploy Backend to Railway
+## Step 1: Deploy Backend to Render (Free)
 
-### 1.1 Sign up for Railway
-1. Go to [railway.app](https://railway.app)
-2. Click **"Start a New Project"**
+### 1.1 Sign up for Render
+1. Go to [render.com](https://render.com)
+2. Click **"Get Started"**
 3. Sign in with GitHub
 
-### 1.2 Create New Project
-1. Click **"Deploy from GitHub repo"**
+### 1.2 Create New Web Service
+1. Click **"New +"** → **"Web Service"**
 2. Select your repository: `Lakshyabh1509/omninexus-platform`
-3. **Important**: Click **"Add Root Directory"** and set it to: `apps/api`
+3. Click **"Connect"**
 
-### 1.3 Configure Environment Variables
-In Railway dashboard → Your project → **Variables** tab:
+### 1.3 Configure Service
+Fill in the following details:
 
-| Variable | Value |
-|----------|-------|
+| Field | Value |
+|-------|-------|
+| **Name** | `omninexus-api` (or similar) |
+| **Region** | Singapore (or closest to you) |
+| **Branch** | `main` |
+| **Root Directory** | `apps/api` |
+| **Runtime** | `Python 3` |
+| **Build Command** | `pip install -r requirements.txt` |
+| **Start Command** | `uvicorn main:app --host 0.0.0.0 --port $PORT` |
+| **Instance Type** | **Free** |
+
+### 1.4 Configure Environment Variables
+Scroll down to **"Environment Variables"** and add:
+
+| Key | Value |
+|-----|-------|
+| `PYTHON_VERSION` | `3.11.0` |
 | `OPENAI_API_KEY` | `sk-your-openai-key` |
 | `ANTHROPIC_API_KEY` | `sk-ant-your-anthropic-key` (optional) |
 | `PERPLEXITY_API_KEY` | `pplx-your-key` (optional) |
 
-### 1.4 Deploy
-1. Railway will auto-detect Python and build
-2. Wait 2-3 minutes for deployment
-3. Click **"Generate Domain"** to get your URL
-4. Your backend URL will be like: `https://omninexus-api-production.up.railway.app`
+### 1.5 Deploy
+1. Click **"Create Web Service"**
+2. Wait for the build to finish (can take 3-5 minutes)
+3. Once live, copy your backend URL (e.g., `https://omninexus-api.onrender.com`)
 
-### 1.5 Test Backend
-Open in browser: `https://your-railway-url.up.railway.app/health`
-
-Should return:
-```json
-{"status": "healthy", "timestamp": "..."}
-```
+> **Note**: The free tier spins down after 15 minutes of inactivity. The first request might take 50 seconds to wake it up.
 
 ---
 
@@ -66,7 +74,7 @@ Should return:
 
 | Key | Value |
 |-----|-------|
-| `VITE_API_URL` | `https://your-railway-url.up.railway.app` |
+| `VITE_API_URL` | `https://omninexus-api.onrender.com` |
 
 > ⚠️ **No trailing slash!** Use `https://api.example.com` not `https://api.example.com/`
 
@@ -89,17 +97,14 @@ Should return:
 ## Troubleshooting
 
 ### AI Support still shows "MOCK"
-- Check Railway logs for errors
-- Verify `OPENAI_API_KEY` is set correctly in Railway
+- Check Render logs for errors
+- Verify `OPENAI_API_KEY` is set correctly in Render
 - Ensure `VITE_API_URL` in Vercel has no trailing slash
+- **Wait for cold start**: On free tier, the first request takes time. Wait 1 minute and try again.
 
 ### CORS Errors in Console
 - Backend CORS is already configured to allow all origins
-- Make sure Railway deployment is complete
-
-### Railway Build Fails
-- Check that root directory is set to `apps/api`
-- Verify `requirements.txt` exists in `apps/api`
+- Make sure Render deployment is marked "Live"
 
 ---
 
@@ -108,19 +113,16 @@ Should return:
 | Service | URL | Purpose |
 |---------|-----|---------|
 | Vercel | `omninexus-platform.vercel.app` | Frontend (React) |
-| Railway | `your-api.railway.app` | Backend (FastAPI) |
+| Render | `omninexus-api.onrender.com` | Backend (FastAPI) |
 
 | Vercel Env Vars | |
 |-----------------|---|
-| `VITE_API_URL` | Railway backend URL |
-| `VITE_SUPABASE_URL` | Supabase URL |
-| `VITE_SUPABASE_ANON_KEY` | Supabase key |
+| `VITE_API_URL` | Render backend URL |
 
-| Railway Env Vars | |
-|------------------|---|
+| Render Env Vars | |
+|-----------------|---|
 | `OPENAI_API_KEY` | For GPT-4 responses |
-| `ANTHROPIC_API_KEY` | Fallback to Claude |
-| `PERPLEXITY_API_KEY` | Fallback to Perplexity |
+| `PYTHON_VERSION` | `3.11.0` |
 
 ---
 
@@ -129,5 +131,5 @@ Should return:
 | Service | Free Tier | Notes |
 |---------|-----------|-------|
 | Vercel | ✅ Unlimited | Static hosting free |
-| Railway | ✅ $5/month credit | Usually enough for low traffic |
+| Render | ✅ Free Web Service | Spins down after inactivity |
 | OpenAI | Pay per use | ~$0.01-0.03 per AI response |
