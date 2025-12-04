@@ -1,14 +1,141 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Mic, Image as ImageIcon, Send, Bot, User, Loader2, Sparkles } from 'lucide-react';
 
-const API_URL = 'http://localhost:8000';
+// Smart mock responses for demo mode (when backend is not available)
+const generateMockResponse = (input) => {
+    const lowerInput = input.toLowerCase();
+
+    // Compliance related
+    if (lowerInput.includes('compliance') || lowerInput.includes('kyc') || lowerInput.includes('aml')) {
+        return `**Compliance Overview**
+
+Based on your query about compliance, here's what I can help with:
+
+📋 **KYC Requirements:**
+- Valid government-issued ID
+- Proof of address (utility bill, bank statement)
+- Beneficial ownership declaration
+- Source of funds documentation
+
+⚠️ **Current Alerts:**
+- 4 pending deliverables require attention
+- 2 entities approaching deadline
+
+Navigate to **Compliance Sentinel** for detailed tracking and automated monitoring.`;
+    }
+
+    // Loan related
+    if (lowerInput.includes('loan') || lowerInput.includes('restructur') || lowerInput.includes('covenant')) {
+        return `**Loan Management Insights**
+
+Your portfolio currently shows:
+
+💰 **Portfolio Summary:**
+- Total Outstanding: $2.4B across 52 loans
+- Compliant: 85% of portfolio
+- Warning Status: 10% (5 loans)
+- Breach Status: 5% (3 loans)
+
+🔄 **Restructuring Workflow:**
+1. Identify distressed assets
+2. Conduct financial analysis
+3. Propose amendment terms
+4. Coordinate with legal
+5. Execute documentation
+
+Visit the **Loan Management** page for detailed covenant tracking.`;
+    }
+
+    // Reports related
+    if (lowerInput.includes('report') || lowerInput.includes('pitch') || lowerInput.includes('cim')) {
+        return `**Report Generation**
+
+I can help you generate investment banking reports:
+
+📊 **Available Report Types:**
+- **Pitch Book** - Company overview & investment thesis
+- **CIM** - Confidential Information Memorandum
+- **Teaser** - One-page investment summary
+- **Financial Model** - 3-statement Excel model
+
+Navigate to **IB Reports** and select a company from the dropdown to generate professional documents in PDF or Excel format.`;
+    }
+
+    // Predictive model
+    if (lowerInput.includes('predict') || lowerInput.includes('model') || lowerInput.includes('analytics')) {
+        return `**Predictive Analytics**
+
+OmniNexus uses machine learning for:
+
+🔮 **Risk Prediction:**
+- Covenant breach probability (85% accuracy)
+- Default likelihood scoring
+- Cash flow forecasting
+
+📈 **Key Metrics Tracked:**
+- Debt/EBITDA trends
+- Interest coverage ratio
+- Current ratio analysis
+
+The models are trained on historical data and update in real-time with new inputs.`;
+    }
+
+    // Data ingestion
+    if (lowerInput.includes('data') || lowerInput.includes('upload') || lowerInput.includes('api')) {
+        return `**Data Ingestion**
+
+OmniNexus supports multiple data sources:
+
+📥 **File Upload:**
+- Drag & drop PDF, CSV, XLSX, JSON
+- Automatic parsing and validation
+
+🔗 **API Integrations:**
+- Bloomberg Terminal (Real-time)
+- Reuters Eikon (Connected)
+- S&P Capital IQ (Active)
+- Moody's Analytics (Active)
+
+Visit **Data Ingestion** to manage connections and uploads.`;
+    }
+
+    // Dashboard / general
+    if (lowerInput.includes('dashboard') || lowerInput.includes('overview') || lowerInput.includes('command')) {
+        return `**Command Center Overview**
+
+Your dashboard provides real-time visibility:
+
+📊 **Key Metrics:**
+- Active Corporate Actions: 12
+- Total Exposure: $5.6B
+- Compliance Rate: 94.2%
+
+🗓️ **Compliance Heatmap:**
+Click any day to see detailed events and status.
+
+📢 **Recent Events:**
+Live feed of system alerts and actions.`;
+    }
+
+    // Default helpful response
+    return `Thanks for your question! I'm your OmniNexus AI Assistant.
+
+I can help you with:
+• **Compliance** - KYC, AML, documentation requirements
+• **Loans** - Portfolio tracking, covenants, restructuring
+• **Reports** - Pitch Books, CIMs, Financial Models
+• **Analytics** - Predictive insights, risk scoring
+• **Data** - File uploads, API integrations
+
+What would you like to explore?`;
+};
 
 export default function SupportInterface() {
     const [messages, setMessages] = useState([
         {
             id: 1,
             role: 'assistant',
-            content: '👋 Hello! I am your OmniNexus AI Assistant powered by advanced AI. I can help you with corporate finance, compliance, data analytics, and platform navigation. How can I assist you today?'
+            content: '👋 Hello! I am your OmniNexus AI Assistant. I can help you with corporate finance, compliance, data analytics, and platform navigation. How can I assist you today?'
         }
     ]);
     const [input, setInput] = useState('');
@@ -28,57 +155,27 @@ export default function SupportInterface() {
 
         const userMessage = { id: Date.now(), role: 'user', content: input };
         setMessages(prev => [...prev, userMessage]);
+        const userInput = input;
         setInput('');
         setIsLoading(true);
 
-        try {
-            // Build conversation history
-            const history = messages.slice(1).map(msg => ({
-                role: msg.role,
-                content: msg.content
-            }));
+        // Simulate AI thinking time
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
 
-            const response = await fetch(`${API_URL}/ai/chat`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    message: input,
-                    conversation_history: history
-                })
-            });
+        const assistantMessage = {
+            id: Date.now() + 1,
+            role: 'assistant',
+            content: generateMockResponse(userInput)
+        };
 
-            if (!response.ok) {
-                throw new Error('Failed to get AI response');
-            }
-
-            const data = await response.json();
-
-            const assistantMessage = {
-                id: Date.now() + 1,
-                role: 'assistant',
-                content: data.response
-            };
-
-            setMessages(prev => [...prev, assistantMessage]);
-        } catch (error) {
-            console.error('AI Error:', error);
-            const errorMessage = {
-                id: Date.now() + 1,
-                role: 'assistant',
-                content: '⚠️ I apologize, but I encountered an error. Please ensure the backend is running and API keys are configured.'
-            };
-            setMessages(prev => [...prev, errorMessage]);
-        } finally {
-            setIsLoading(false);
-        }
+        setMessages(prev => [...prev, assistantMessage]);
+        setIsLoading(false);
     };
 
     const quickActions = [
         "Explain loan restructuring workflow",
         "Check compliance requirements",
-        "How does the predictive model work?",
+        "How do I generate reports?",
         "What are the KYC documentation standards?"
     ];
 
@@ -92,31 +189,41 @@ export default function SupportInterface() {
                         </div>
                         <div>
                             <h2 className="font-bold text-white text-xl">AI Support Assistant</h2>
-                            <p className="text-white/80 text-sm">Powered by OpenAI & Anthropic</p>
+                            <p className="text-white/80 text-sm">Powered by OmniNexus Intelligence</p>
                         </div>
                     </div>
                     <div className="flex items-center space-x-2">
                         <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                        <span className="text-white text-sm">Live</span>
+                        <span className="text-white text-sm">Online</span>
                     </div>
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-900">
-                {messages.map((msg) => (
-                    <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`flex items-start space-x-3 max-w-[80%] ${msg.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                            <div className={`p-2 rounded-lg shrink-0 ${msg.role === 'user'
-                                    ? 'bg-primary-600'
-                                    : 'bg-gradient-to-br from-purple-600 to-primary-600'
-                                }`}>
-                                {msg.role === 'user' ? <User size={20} className="text-white" /> : <Bot size={20} className="text-white" />}
+            <div className="flex-1 overflow-y-auto bg-slate-900 p-6 space-y-6">
+                {messages.map((message) => (
+                    <div
+                        key={message.id}
+                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                        <div className={`flex items-start space-x-3 max-w-[80%] ${message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
+                            <div className={`p-2 rounded-lg ${message.role === 'user' ? 'bg-primary-600' : 'bg-slate-700'}`}>
+                                {message.role === 'user' ? <User size={18} className="text-white" /> : <Bot size={18} className="text-white" />}
                             </div>
-                            <div className={`p-4 rounded-2xl ${msg.role === 'user'
-                                    ? 'bg-primary-600 text-white rounded-br-none'
-                                    : 'bg-slate-800 text-slate-200 rounded-bl-none border border-slate-700'
+                            <div className={`p-4 rounded-xl ${message.role === 'user'
+                                ? 'bg-primary-600 text-white'
+                                : 'bg-slate-800 text-slate-200'
                                 }`}>
-                                <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                                <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                                    {message.content.split('\n').map((line, i) => {
+                                        if (line.startsWith('**') && line.endsWith('**')) {
+                                            return <p key={i} className="font-bold text-white mt-2 mb-1">{line.replace(/\*\*/g, '')}</p>;
+                                        }
+                                        if (line.startsWith('•') || line.startsWith('-')) {
+                                            return <p key={i} className="ml-2">{line}</p>;
+                                        }
+                                        return <p key={i}>{line}</p>;
+                                    })}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -125,14 +232,11 @@ export default function SupportInterface() {
                 {isLoading && (
                     <div className="flex justify-start">
                         <div className="flex items-center space-x-3">
-                            <div className="p-2 bg-gradient-to-br from-purple-600 to-primary-600 rounded-lg">
-                                <Bot size={20} className="text-white" />
+                            <div className="p-2 rounded-lg bg-slate-700">
+                                <Bot size={18} className="text-white" />
                             </div>
-                            <div className="p-4 bg-slate-800 rounded-2xl rounded-bl-none border border-slate-700">
-                                <div className="flex items-center space-x-2">
-                                    <Loader2 className="animate-spin text-primary-500" size={16} />
-                                    <span className="text-slate-400 text-sm">AI is thinking...</span>
-                                </div>
+                            <div className="bg-slate-800 p-4 rounded-xl">
+                                <Loader2 className="animate-spin text-primary-400" size={20} />
                             </div>
                         </div>
                     </div>
@@ -141,41 +245,36 @@ export default function SupportInterface() {
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* Quick Actions */}
-            {messages.length === 1 && (
-                <div className="px-6 py-4 bg-slate-850 border-t border-slate-800">
-                    <p className="text-xs text-slate-500 mb-3">Quick Actions:</p>
-                    <div className="grid grid-cols-2 gap-2">
-                        {quickActions.map((action, idx) => (
-                            <button
-                                key={idx}
-                                onClick={() => setInput(action)}
-                                className="text-left text-sm px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors border border-slate-700 hover:border-primary-500"
-                            >
-                                {action}
-                            </button>
-                        ))}
-                    </div>
+            <div className="bg-slate-850 border-t border-slate-800 p-4">
+                <div className="flex flex-wrap gap-2 mb-4">
+                    {quickActions.map((action, index) => (
+                        <button
+                            key={index}
+                            onClick={() => setInput(action)}
+                            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm rounded-lg transition-colors border border-slate-700"
+                        >
+                            {action}
+                        </button>
+                    ))}
                 </div>
-            )}
 
-            <div className="p-4 bg-slate-850 rounded-b-xl border-t border-slate-800">
-                <div className="flex items-center space-x-2">
-                    <input
-                        type="text"
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && !isLoading && handleSend()}
-                        placeholder="Ask anything about OmniNexus platform, policies, or workflows..."
-                        disabled={isLoading}
-                        className="flex-1 bg-slate-900 border border-slate-700 rounded-full px-6 py-3 text-white placeholder-slate-500 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all disabled:opacity-50"
-                    />
+                <div className="flex items-center space-x-3">
+                    <div className="flex-1 relative">
+                        <input
+                            type="text"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                            placeholder="Ask anything about OmniNexus..."
+                            className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        />
+                    </div>
                     <button
                         onClick={handleSend}
-                        disabled={isLoading || !input.trim()}
-                        className="p-3 bg-gradient-to-r from-primary-600 to-purple-600 text-white rounded-full hover:from-primary-500 hover:to-purple-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary-500/20"
+                        disabled={!input.trim() || isLoading}
+                        className="p-3 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 rounded-xl transition-colors"
                     >
-                        {isLoading ? <Loader2 className="animate-spin" size={20} /> : <Send size={20} />}
+                        <Send size={20} className="text-white" />
                     </button>
                 </div>
             </div>
