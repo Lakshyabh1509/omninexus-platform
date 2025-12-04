@@ -203,9 +203,12 @@ export default function SupportInterface() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout for LLM response
 
+        // Use environment variable for API URL, fallback to localhost for development
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
         try {
             // Attempt to call the live backend API
-            const response = await fetch('http://localhost:8000/ai/chat', {
+            const response = await fetch(`${API_URL}/ai/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
